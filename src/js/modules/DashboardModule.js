@@ -1,5 +1,4 @@
-// src/js/modules/DashboardModule.js
-// The Dashboard page: hero flight, weather and boards.
+
 import { renderBoard, setText } from './shared.js';
 
 let app;
@@ -33,7 +32,6 @@ export default {
     app = sharedApp;
   },
 
-  /** state is null until the first data load */
   render(state) {
     if (!state) return;
     const { flight, weather, airport, active, departures, arrivals } = state;

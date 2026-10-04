@@ -1,17 +1,14 @@
-// js/services/api.js
-// The ONLY file that calls external APIs. Other modules import from here.
+
 const AVIATION_STACK_KEY = import.meta.env.VITE_AVIATION_STACK_KEY;
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
-/* ==========================================
-   Errors
-   ========================================== */
+/** Errors */
 
 export class ApiError extends Error {
   constructor(kind, message) {
     super(message);
     this.name = "ApiError";
-    // "config" | "auth" | "quota" | "restricted" | "network" | "http" | "api"
+
     this.kind = kind;
   }
 }
@@ -36,10 +33,6 @@ function mapAviationError(error) {
   }
 }
 
-/* ==========================================
-   Cache + monthly request counter
-   ========================================== */
-
 const CACHE_MS = 10 * 60 * 1000;
 const PREFIX = "aeropulse:api:v1:";
 
@@ -57,14 +50,13 @@ function pruneCache() {
     Object.keys(localStorage)
       .filter((k) => k.startsWith(PREFIX + "q:"))
       .forEach((k) => localStorage.removeItem(k));
-  } catch { /* ignore */ }
+  } catch { }
 }
 
 function storeSet(key, value) {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value));
   } catch {
-    // Storage full: clear old cached queries and try once more
     pruneCache();
     try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch { /* give up */ }
   }
@@ -83,16 +75,12 @@ function countRequest() {
   storeSet(key, (storeGet(key) || 0) + 1);
 }
 
-/** AviationStack requests made from this browser this month (not your account-wide total) */
 export function getApiUsage() {
   return { month: currentMonth(), requests: storeGet("usage:" + currentMonth()) || 0 };
 }
 
-/* ==========================================
-   AviationStack (flights)
-   ========================================== */
+/** AviationStack */
 
-/** Keep only the fields the app uses, so cached results stay small */
 function slimFlight(f) {
   const side = (s = {}) => ({
     iata: s.iata,
@@ -115,11 +103,6 @@ function slimFlight(f) {
   };
 }
 
-/**
- * Single entry point for every flight request.
- * Returns the raw (slimmed) flight list. Cached for 10 minutes; if the API
- * hits its quota or the network fails, the last saved result is served instead.
- */
 async function fetchFlights(params) {
   if (!AVIATION_STACK_KEY || AVIATION_STACK_KEY === "YOUR_AVIATIONSTACK_API_KEY") {
     throw new ApiError("config", "AviationStack API key is unconfigured in .env");
@@ -160,30 +143,23 @@ async function fetchFlights(params) {
   }
 }
 
-/** Raw matches for a flight number */
 export const fetchFlightByNumber = (num) =>
   fetchFlights({ flight_iata: String(num).toUpperCase().replace(/\s+/g, "") });
 
-/** Raw departures or arrivals for an airport */
 export const fetchAirportFlights = (direction, iata) =>
   fetchFlights({
     [direction === "arrivals" ? "arr_iata" : "dep_iata"]: iata.toUpperCase(),
     limit: "100"
   });
 
-/** Raw flights between two airports */
 export const fetchRouteFlights = (fromIata, toIata) =>
   fetchFlights({ dep_iata: fromIata.toUpperCase(), arr_iata: toIata.toUpperCase(), limit: "100" });
 
-/** Raw flights for an airline IATA code */
 export const fetchAirlineFlights = (airlineIata) =>
   fetchFlights({ airline_iata: airlineIata.toUpperCase(), limit: "100" });
 
-/* ==========================================
-   WeatherAPI
-   ========================================== */
+/** WeatherAPI */
 
-/** Keep only the fields the app uses, so cached results stay small */
 function slimWeather(d) {
   const cond = (c = {}) => ({ text: c.text, code: c.code });
   const c = d.current ?? {};
@@ -262,11 +238,6 @@ function mapWeatherError(error) {
   }
 }
 
-/**
- * Raw (slimmed) weather for a location: current conditions, 3-day forecast with hours, and alerts.
- * Accepts a city name, "iata:LOS", or a "lat,lon" string.
- * Cached for 10 minutes; served from the last saved result if the network or quota fails.
- */
 export async function fetchWeatherData(query) {
   if (!WEATHER_API_KEY || WEATHER_API_KEY === "YOUR_WEATHERAPI_KEY") {
     throw new ApiError("config", "WeatherAPI key is unconfigured in .env");
@@ -312,9 +283,7 @@ export async function fetchWeatherData(query) {
   }
 }
 
-/* ==========================================
-   Geolocation
-   ========================================== */
+/** Geolocation */
 
 export function getUserCoordinates() {
   return new Promise((resolve, reject) => {
@@ -364,10 +333,6 @@ export async function reverseGeocode(lat, lon) {
   };
 }
 
-/* ==========================================
-   Nearest airport (OurAirports open dataset)
-   ========================================== */
-
 const AIRPORTS_CSV = "https://davidmegginson.github.io/ourairports-data/airports.csv";
 const AIRPORT_INDEX_KEY = "airport-index:v1";
 
@@ -399,12 +364,11 @@ function parseCsvLine(line) {
   return out;
 }
 
-/** Compact index of [iata, lat, lon] for airports with scheduled commercial service */
 async function loadAirportIndex() {
   try {
     const saved = localStorage.getItem(AIRPORT_INDEX_KEY);
     if (saved) return JSON.parse(saved);
-  } catch { /* ignore */ }
+  } catch { }
 
   const res = await fetch(AIRPORTS_CSV);
   if (!res.ok) throw new Error("Airport database is unavailable right now.");
@@ -427,7 +391,7 @@ async function loadAirportIndex() {
   return index;
 }
 
-/** Nearest airport with commercial service, within 200 km */
+
 export async function findNearestAirport(lat, lon) {
   const index = await loadAirportIndex();
 

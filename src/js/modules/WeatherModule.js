@@ -1,5 +1,4 @@
-// src/js/modules/WeatherModule.js
-// The Weather & Atmospheric Hazards page: origin and destination weather for the selected flight.
+
 import { metricTiles, worstLevel } from '../services/WeatherService.js';
 import { el, setText } from './shared.js';
 
@@ -163,7 +162,7 @@ export default {
   id: 'weather',
 
   init() {
-    // Nothing to wire up yet: this page only displays data.
+
   },
 
   render(state) {

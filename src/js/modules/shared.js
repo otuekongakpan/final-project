@@ -1,5 +1,4 @@
-// src/js/modules/shared.js
-// Helpers used by more than one module.
+
 import { localTime } from '../services/FlightService.js';
 
 export function setText(id, value) {
@@ -14,13 +13,8 @@ export function el(tag, className, text) {
   return node;
 }
 
-/** "2026-10-03 14:05" from an API timestamp (already airport-local) */
 export const fmt = (iso) => (iso ? `${iso.slice(0, 10)} ${localTime(iso)}` : '—');
 
-/**
- * Renders a list of flights as board rows.
- * direction: "active" | "departures" | "arrivals" | "results"
- */
 export function renderBoard(
   containerId,
   flights,
@@ -47,7 +41,6 @@ export function renderBoard(
       scheduled = f.destination.scheduled;
       rightText = `from ${f.origin.code}`;
     } else {
-      // "active" and "results": show the full route
       scheduled = f.origin.scheduled;
       rightText = `${f.origin.code} → ${f.destination.code}`;
       if (direction === 'results' && scheduled) airlineText = `${f.airline} • ${scheduled.slice(0, 10)}`;

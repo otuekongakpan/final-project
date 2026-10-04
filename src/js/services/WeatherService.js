@@ -11,16 +11,14 @@ const HEAVY_RAIN = [1192, 1195, 1243, 1246];
 
 const LEVEL_RANK = { ok: 0, caution: 1, warning: 2 };
 
-/** The most serious level in a list of hazards: "ok" | "caution" | "warning" */
+
 export const worstLevel = (items) =>
   items.reduce((worst, i) => (LEVEL_RANK[i.level] > LEVEL_RANK[worst] ? i.level : worst), "ok");
 
 /* ---------- Helpers ---------- */
 
-/** A number, or null when the API left the field out */
 const num = (v) => (v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 
-/** "2026-10-3 4:05" becomes "2026-10-03 04:05" so times compare correctly as text */
 function padLocal(str = "") {
   const [d = "", t = ""] = str.split(" ");
   const [y, m, day] = d.split("-");
@@ -33,7 +31,6 @@ const withUnit = (v, unit) => (v === null ? "—" : `${Math.round(v * 10) / 10}$
 
 /* ---------- Hazards ---------- */
 
-/** Rules of thumb for planning, not official aviation limits */
 export function assessHazards(w) {
   const out = [];
   const add = (level, label, detail) => out.push({ level, label, detail });
@@ -81,11 +78,6 @@ export function assessHazards(w) {
 
 /* ---------- Normalizing ---------- */
 
-/**
- * Turns raw weather from api.js into the shape the app uses.
- * tempC, tempF, humidity and windKph are display strings (the dashboard card uses them);
- * temp and metrics hold numbers (or null when the API left a field out).
- */
 export function normalizeWeather(raw) {
   const loc = raw.location ?? {};
   const cur = raw.current ?? {};
@@ -165,7 +157,6 @@ export function normalizeWeather(raw) {
   return weather;
 }
 
-/** Label/value pairs for the metrics tiles on the Weather page */
 export function metricTiles(w) {
   const m = w.metrics;
   return [

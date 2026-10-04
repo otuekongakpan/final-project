@@ -1,5 +1,3 @@
-// js/services/FlightService.js
-// Flight service handling normalization, search parsing, and watchlist state management.
 
 const LIVE_STATUSES = ["active", "scheduled"];
 const STATUS_ORDER = ["active", "scheduled", "landed", "diverted", "incident", "cancelled", "unknown"];
@@ -9,14 +7,10 @@ const rank = (status) => {
   return i === -1 ? STATUS_ORDER.length : i;
 };
 
-/* ==========================================
-   STATE MANAGEMENT (Watchlist & Tracking)
-   ========================================== */
+/** WATCHLIST AND TRACKING */
 
-// Internal reactive store for watchlist flights
 let watchlistStore = [];
 
-/** Add a flight object or raw API object to the watchlist */
 export function addToWatchlist(flightData) {
   const normalized = flightData.flightNumber ? flightData : normalizeFlight(flightData);
   const exists = watchlistStore.some((f) => f.flightNumber === normalized.flightNumber);
@@ -27,31 +21,25 @@ export function addToWatchlist(flightData) {
   return [...watchlistStore];
 }
 
-/** Remove a flight from the watchlist by flight number */
 export function removeFromWatchlist(flightNumber) {
   watchlistStore = watchlistStore.filter((f) => f.flightNumber !== flightNumber);
   return [...watchlistStore];
 }
 
-/** Get the complete watchlist (For the full Watchlist module view) */
 export function getFullWatchlist() {
   return [...watchlistStore];
 }
 
-/** Get only the top 5 flights (For the Dashboard widget preview) */
 export function getDashboardWatchlist(limit = 5) {
   return sortByStatus(watchlistStore).slice(0, limit);
 }
 
-/** Check if a flight is currently on the watchlist */
 export function isWatched(flightNumber) {
   return watchlistStore.some((f) => f.flightNumber === flightNumber);
 }
 
 
-/* ==========================================
-   NORMALIZING DATA
-   ========================================== */
+/** NORMALIZING DATA */
 
 function normalizeSide(s = {}) {
   return {
@@ -80,17 +68,10 @@ export function normalizeFlight(f) {
 
 export const normalizeFlights = (rawList) => rawList.map(normalizeFlight);
 
-/** "HH:MM" from an API timestamp (airport-local string) */
 export function localTime(iso) {
   return iso ? iso.slice(11, 16) : "--:--";
 }
 
-
-/* ==========================================
-   PICKING, SORTING & BOARD BUILDING
-   ========================================== */
-
-/** Picks active/scheduled flight first for main flight tracking view */
 export function pickBestFlight(rawList, flightNumber = "") {
   const flights = normalizeFlights(rawList);
   if (!flights.length) {
@@ -99,7 +80,6 @@ export function pickBestFlight(rawList, flightNumber = "") {
   return [...flights].sort((a, b) => rank(a.status) - rank(b.status))[0];
 }
 
-/** Builds departures/arrivals board sorted by scheduled time */
 export function buildBoard(rawList, direction) {
   const side = direction === "arrivals" ? "destination" : "origin";
 
@@ -111,7 +91,6 @@ export function buildBoard(rawList, direction) {
   return live.length ? live : all.slice(-10);
 }
 
-/** Route results: live flights first, then departure time */
 export function sortRoute(rawList) {
   return normalizeFlights(rawList)
     .filter((f) => f.origin.scheduled)
@@ -122,11 +101,6 @@ export function sortRoute(rawList) {
 export function sortByStatus(rawList) {
   return normalizeFlights(rawList).sort((a, b) => rank(a.status) - rank(b.status));
 }
-
-
-/* ==========================================
-   FILTERING & SEARCH PARSING
-   ========================================== */
 
 export function filterFlights(flights, { text = "", status = "", airlineCode = "" } = {}) {
   const needle = text.trim().toLowerCase();

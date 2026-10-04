@@ -1,19 +1,8 @@
-/* ==========================================
-   1. FONTS
-   ========================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,300..800;1,300..800&display=swap');
 
-/* ==========================================
-   2. RESET & DESIGN TOKENS
-   ========================================== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 :root {
-  /* Sidebar widths */
+
   --sidebar-width-expanded: 240px;
   --sidebar-width-collapsed: 68px;
   --sidebar-width: var(--sidebar-width-expanded);
@@ -60,6 +49,12 @@
   --header-height: 64px;
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: var(--font-body);
   font-weight: 500;
@@ -85,7 +80,7 @@ button {
 }
 
 /* ==========================================
-   3. APP LAYOUT
+    APP LAYOUT
    ========================================== */
 .app-container {
   display: grid;
@@ -117,7 +112,7 @@ button {
 }
 
 /* ==========================================
-   4. SIDEBAR
+   SIDEBAR
    ========================================== */
 .sidebar {
   position: sticky;
@@ -225,7 +220,7 @@ button {
 }
 
 /* ==========================================
-   5. MAIN WRAPPER & TOP NAV
+   MAIN WRAPPER & TOP NAV
    ========================================== */
 .main-wrapper {
   display: flex;
@@ -296,7 +291,6 @@ button {
     white-space: nowrap;
   }
 
-  /* Pulses slowly to show data is live */
   & .status-indicator.online {
     position: relative;
     width: 10px;
@@ -322,7 +316,7 @@ button {
 }
 
 /* ==========================================
-   6. DASHBOARD CONTENT
+    DASHBOARD CONTENT
    ========================================== */
 .dashboard-content {
   padding: 2rem;
@@ -359,10 +353,9 @@ button {
   display: grid;
   grid-template-columns: 2.5fr 1fr;
   gap: 1.5rem;
-  align-items: stretch; /* Updated: align equal height columns */
+  align-items: stretch; 
 }
 
-/* Mini-widgets grid stretching across the hero card width */
 .widgets-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -371,7 +364,7 @@ button {
 }
 
 /* ==========================================
-   7. CARDS
+   CARDS
    ========================================== */
 .dashboard-card {
   background-color: var(--bg-card);
@@ -389,7 +382,7 @@ button {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.75rem 1.5rem;
-  height: 100%; /* Updated: match height of the left column */
+  height: 100%; 
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -435,16 +428,14 @@ button {
   color: #15803d;
 }
 
-/* Hero: the active flight (Large Widget) */
-/* Hero: the active flight (Large Widget) */
 #card-telemetry {
   grid-column: 1 / -1;
   background-color: var(--color-nacht);
   border-color: transparent;
   border-radius: var(--radius-lg);
   padding: 2.5rem 2.25rem;
-  flex: 1;                /* Allows card to stretch and fill remaining vertical height */
-  min-height: 100%;       /* Matches the container's height */
+  flex: 1;                
+  min-height: 100%;       
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -563,7 +554,7 @@ button {
 }
 
 /* ==========================================
-   8. WATCHLIST
+   WATCHLIST
    ========================================== */
 .watchlist-list {
   display: flex;
@@ -638,7 +629,7 @@ button {
 }
 
 /* ==========================================
-   9. STATUS COLORS (light surfaces)
+   STATUS COLORS (light surfaces)
    ========================================== */
 .status-ontime,
 .status-active {
@@ -661,7 +652,7 @@ button {
 }
 
 /* ==========================================
-   10. DEPARTURE & ARRIVAL BOARDS
+   DEPARTURE & ARRIVAL BOARDS
    ========================================== */
 .boards {
   display: grid;
@@ -801,9 +792,6 @@ button {
   }
 }
 
-/* ==========================================
-   11. RESPONSIVE
-   ========================================== */
 @media (max-width: 1000px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -825,7 +813,7 @@ button {
 }
 
 /* ==========================================
-   13. WATCHLIST: PREVIEW LIMIT & FULL LIST
+   WATCHLIST: PREVIEW LIMIT & FULL LIST
    ========================================== */
 .watchlist-more {
   margin-top: 0.5rem;
@@ -859,7 +847,7 @@ button {
 }
 
 /* ==========================================
-   12. VIEWS & FLIGHT TRACKING PAGE
+   VIEWS & FLIGHT TRACKING PAGE
    ========================================== */
 [hidden] {
   display: none !important;
@@ -975,7 +963,7 @@ button {
 }
 
 /* ==========================================
-   14. WEATHER PAGE
+    WEATHER PAGE
    ========================================== */
 .badge {
   &.level-ok {
@@ -1221,11 +1209,6 @@ button {
   }
 }
 
-/* ==========================================
-   15. PHONE FIXES (stop cards overflowing the screen)
-   ========================================== */
-
-/* Let grid columns and flex items shrink below their content's natural width */
 .app-container {
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 }
@@ -1261,7 +1244,6 @@ button {
   flex-wrap: wrap;
 }
 
-/* The search bar was too wide for phones because its input could not shrink */
 .search-bar {
   flex: 1 1 auto;
   width: auto;
@@ -1288,7 +1270,7 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* Breakpoints repeated so they still win over the rules above */
+
 @media (max-width: 1000px) {
   .dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1305,7 +1287,7 @@ button {
 /* Phones */
 @media (max-width: 720px) {
   :root {
-    --sidebar-width-collapsed: 56px; /* a slimmer icon sidebar */
+    --sidebar-width-collapsed: 56px; 
   }
 
   .sidebar {

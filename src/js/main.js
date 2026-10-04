@@ -1,16 +1,14 @@
-// src/js/main.js
-// Router and shared actions. Each page lives in its own module.
+
 import { initGeoDashboard, searchDashboard, selectFlight } from './services/DashboardService.js';
 import DashboardModule from './modules/DashboardModule.js';
 import FlightTrackerModule from './modules/FlightTrackerModule.js';
 import WeatherModule from './modules/WeatherModule.js';
 
-// Add new pages here. A module's id must match its #view-<id> section and its nav data-view.
-// Pages with no module yet (weather, packing, risk, settings) still open as placeholders.
+
 const modules = [DashboardModule, FlightTrackerModule, WeatherModule];
 const DEFAULT_VIEW = 'dashboard';
 
-let state = null; // null until the first data load
+let state = null; 
 
 /* ---------- Errors ---------- */
 
@@ -32,7 +30,6 @@ function clearError() {
 
 const currentHash = () => location.hash.slice(1);
 
-/** Pages are discovered from the HTML: every .view-section with id="view-<name>" */
 function getViewIds() {
   return [...document.querySelectorAll('.view-section')].map((s) => s.id.replace('view-', ''));
 }
@@ -46,7 +43,7 @@ function setView(name) {
     if (!section) return;
     const show = id === view;
     section.hidden = !show;
-    section.style.display = show ? '' : 'none'; // overrides the inline display:none
+    section.style.display = show ? '' : 'none'; 
     section.classList.toggle('active', show);
   });
 
@@ -60,7 +57,7 @@ function setView(name) {
 
 function goTo(view) {
   if (currentHash() === view) setView(view);
-  else location.hash = view; // the hashchange listener calls setView
+  else location.hash = view; 
 }
 
 /* ---------- Rendering ---------- */
@@ -69,7 +66,7 @@ function renderAll() {
   modules.forEach((m) => m.render(state));
 }
 
-/* ---------- Shared actions (given to every module) ---------- */
+/* ---------- Shared actions ---------- */
 
 async function select(flight) {
   try {
@@ -86,14 +83,12 @@ async function search(term) {
     state = await searchDashboard(term);
     clearError();
 
-    // Keep both search boxes in sync
     const topInput = document.getElementById('flight-search-input');
     if (topInput) topInput.value = term;
     modules.forEach((m) => m.onSearch?.(term));
 
     renderAll();
 
-    // Open the page that owns this kind of search (flight, route and airline go to the tracker)
     const owner = modules.find((m) => m.queryTypes?.includes(state.query?.type));
     goTo(owner ? owner.id : DEFAULT_VIEW);
   } catch (error) {
@@ -114,7 +109,7 @@ async function startApp() {
       showError(`No live flights found for ${state.airport} right now. Try another airport code.`);
     }
   } catch (error) {
-    // Includes "Location permission was denied." and "No airport found..."
+
     showError(error.message);
   }
 }

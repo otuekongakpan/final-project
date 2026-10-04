@@ -1,5 +1,4 @@
-// src/js/modules/FlightTrackerModule.js
-// The Flight Tracking page: search, results and flight details.
+
 import { filterFlights } from '../services/FlightService.js';
 import { el, fmt, renderBoard, setText } from './shared.js';
 
@@ -75,8 +74,6 @@ function renderResults(state) {
 
 export default {
   id: 'tracking',
-
-  // Search types this page owns. main.js opens it when a search matches one.
   queryTypes: ['flight', 'route', 'airline'],
 
   init(sharedApp) {
@@ -91,7 +88,6 @@ export default {
     document.getElementById('tracking-status')?.addEventListener('change', () => renderResults(lastState));
   },
 
-  /** Keeps this page's search box in sync with the top search bar */
   onSearch(term) {
     const input = document.getElementById('tracking-input');
     if (input) input.value = term;

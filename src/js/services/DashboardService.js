@@ -1,14 +1,5 @@
-// src/js/services/DashboardService.js
-import {
-  fetchAirlineFlights,
-  fetchAirportFlights,
-  fetchFlightByNumber,
-  fetchRouteFlights,
-  fetchWeatherData,
-  findNearestAirport,
-  getUserCoordinates,
-  reverseGeocode
-} from './api.js';
+
+import { fetchAirlineFlights, fetchAirportFlights, fetchFlightByNumber, fetchRouteFlights, fetchWeatherData, findNearestAirport, getUserCoordinates, reverseGeocode } from './api.js';
 import { buildBoard, detectQuery, sortByStatus, sortRoute } from './FlightService.js';
 import { normalizeWeather } from './WeatherService.js';
 
@@ -21,18 +12,17 @@ let cachedState = {
   departures: [],
   arrivals: [],
   flight: null,
-  weather: null,            // origin weather (or the searched city)
-  destinationWeather: null, // destination weather of the selected flight
-  weatherContext: 'flight', // "flight" or "location" (a city search)
-  weatherError: null,       // message if the last weather load failed
-  query: null,              // what the last search was (flight, route, airline, airport, text)
-  results: [],              // flight / route / airline search results
+  weather: null,           
+  destinationWeather: null, 
+  weatherContext: 'flight', 
+  weatherError: null,      
+  query: null,              
+  results: [],             
   lastUpdated: null
 };
 
 /* ---------- Weather ---------- */
 
-/** api.js fetches (and caches); WeatherService.js shapes the data */
 const getWeather = async (query) => normalizeWeather(await fetchWeatherData(query));
 
 function weatherQueryFor(flight, airport) {
@@ -44,7 +34,6 @@ function destinationQueryFor(flight) {
   return flight && flight.destination.code !== "N/A" ? `iata:${flight.destination.code}` : null;
 }
 
-/** Loads origin and destination weather for a flight. Failures are recorded, not thrown. */
 async function loadFlightWeather(flight, airport) {
   const destQuery = destinationQueryFor(flight);
 
@@ -64,7 +53,6 @@ async function loadFlightWeather(flight, airport) {
 
 /* ---------- Airport boards ---------- */
 
-/** Loads departures/arrivals for an airport and derives the in-air list */
 export async function loadAirportBoard(iata) {
   const code = iata.toUpperCase();
 
@@ -86,7 +74,6 @@ export async function loadAirportBoard(iata) {
     .filter((f) => f.status === "active" && !seen.has(f.flightNumber) && seen.add(f.flightNumber))
     .slice(0, 10);
 
-  // Featured flight: first airborne flight at this airport, else the next departure
   cachedState.flight =
     cachedState.active[0] || cachedState.departures[0] || cachedState.arrivals[0] || null;
 
@@ -94,7 +81,7 @@ export async function loadAirportBoard(iata) {
 }
 
 export async function initGeoDashboard() {
-  // Throws a readable error if permission is denied or unavailable
+
   const coords = await getUserCoordinates();
 
   cachedState.userLocation = await reverseGeocode(coords.lat, coords.lon).catch(() => null);
@@ -111,7 +98,6 @@ export async function initGeoDashboard() {
   return cachedState;
 }
 
-/** Called when a row in any board or result list is clicked */
 export async function selectFlight(flight) {
   cachedState.flight = flight;
   await loadFlightWeather(flight, cachedState.airport);
@@ -119,7 +105,6 @@ export async function selectFlight(flight) {
   return cachedState;
 }
 
-/** Stores search results, features the first one, and loads its weather */
 async function showResults(flights, emptyMessage) {
   const results = flights.filter((f) => f.flightNumber !== "N/A").slice(0, MAX_RESULTS);
   if (!results.length) throw new Error(emptyMessage);
@@ -161,7 +146,7 @@ export async function searchDashboard(term) {
       break;
 
     default:
-      // City name: a bad city throws, so the error banner explains what went wrong
+
       cachedState.weather = await getWeather(query.text);
       cachedState.destinationWeather = null;
       cachedState.weatherContext = 'location';
