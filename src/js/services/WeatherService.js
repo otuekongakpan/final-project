@@ -1,8 +1,4 @@
-// src/js/services/WeatherService.js
-// Pure logic. No network calls, no API keys, no storage.
-// Takes raw weather returned by api.js and prepares it for the UI.
 
-// WeatherAPI condition codes
 const THUNDER = [1087, 1273, 1276, 1279, 1282];
 const FOG = [1135, 1147];
 const FREEZING = [1069, 1072, 1168, 1171, 1198, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264];

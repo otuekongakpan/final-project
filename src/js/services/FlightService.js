@@ -97,7 +97,6 @@ export function sortRoute(rawList) {
     .sort((a, b) => rank(a.status) - rank(b.status) || a.origin.scheduled.localeCompare(b.origin.scheduled));
 }
 
-/** Priority sort by active/scheduled status */
 export function sortByStatus(rawList) {
   return normalizeFlights(rawList).sort((a, b) => rank(a.status) - rank(b.status));
 }

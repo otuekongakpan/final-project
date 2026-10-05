@@ -75,6 +75,7 @@ function renderResults(state) {
 export default {
   id: 'tracking',
   queryTypes: ['flight', 'route', 'airline'],
+  placeholder: 'Search a flight (BA74), route (LOS-JFK) or airline (BA)',
 
   init(sharedApp) {
     app = sharedApp;

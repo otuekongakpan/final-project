@@ -161,6 +161,9 @@ function renderSummary(panels, errorText) {
 export default {
   id: 'weather',
 
+  queryTypes: ['airport', 'text', 'flight', 'route', 'airline'],
+  placeholder: 'Search a city or airport (LOS) for its weather',
+
   init() {
 
   },
@@ -168,9 +171,10 @@ export default {
   render(state) {
     const flight = state?.flight;
     const isLocation = state?.weatherContext === 'location';
+    const placeLabel = state?.weatherLabel ?? state?.weather?.location ?? 'your search';
 
     if (isLocation) {
-      setText('weather-corridor', `Showing weather for ${state.weather?.location ?? 'your search'}.`);
+      setText('weather-corridor', `Showing weather for ${placeLabel}.`);
     } else if (flight) {
       setText(
         'weather-corridor',
@@ -180,7 +184,7 @@ export default {
       setText('weather-corridor', 'Select a flight to see the weather along its route.');
     }
 
-    const originTitle = isLocation ? 'Location' : 'Origin';
+    const originTitle = isLocation ? (state?.weatherLabel ?? 'Location') : 'Origin';
     const errorText = state?.weatherError;
 
     renderSummary(

@@ -2,13 +2,14 @@
 const AVIATION_STACK_KEY = import.meta.env.VITE_AVIATION_STACK_KEY;
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 
-/** Errors */
+/* ==========================================
+   Errors
+   ========================================== */
 
 export class ApiError extends Error {
   constructor(kind, message) {
     super(message);
     this.name = "ApiError";
-
     this.kind = kind;
   }
 }
@@ -32,6 +33,24 @@ function mapAviationError(error) {
       return new ApiError("api", `AviationStack Error: ${info}`);
   }
 }
+
+/* ==========================================
+   Requests that give up instead of hanging
+   ========================================== */
+
+async function fetchWithTimeout(url, ms = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ==========================================
+   Cache + monthly request counter
+   ========================================== */
 
 const CACHE_MS = 10 * 60 * 1000;
 const PREFIX = "aeropulse:api:v1:";
@@ -58,7 +77,7 @@ function storeSet(key, value) {
     localStorage.setItem(PREFIX + key, JSON.stringify(value));
   } catch {
     pruneCache();
-    try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch { /* give up */ }
+    try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch { }
   }
 }
 
@@ -79,7 +98,9 @@ export function getApiUsage() {
   return { month: currentMonth(), requests: storeGet("usage:" + currentMonth()) || 0 };
 }
 
-/** AviationStack */
+/* ==========================================
+   AviationStack
+   ========================================== */
 
 function slimFlight(f) {
   const side = (s = {}) => ({
@@ -118,7 +139,7 @@ async function fetchFlights(params) {
 
     let response;
     try {
-      response = await fetch(`https://api.aviationstack.com/v1/flights?${query}`);
+      response = await fetchWithTimeout(`https://api.aviationstack.com/v1/flights?${query}`);
     } catch {
       throw new ApiError("network", "Could not reach AviationStack. Check your connection.");
     }
@@ -158,7 +179,9 @@ export const fetchRouteFlights = (fromIata, toIata) =>
 export const fetchAirlineFlights = (airlineIata) =>
   fetchFlights({ airline_iata: airlineIata.toUpperCase(), limit: "100" });
 
-/** WeatherAPI */
+/* ==========================================
+   WeatherAPI
+   ========================================== */
 
 function slimWeather(d) {
   const cond = (c = {}) => ({ text: c.text, code: c.code });
@@ -258,7 +281,7 @@ export async function fetchWeatherData(query) {
 
     let response;
     try {
-      response = await fetch(`https://api.weatherapi.com/v1/forecast.json?${params}`);
+      response = await fetchWithTimeout(`https://api.weatherapi.com/v1/forecast.json?${params}`);
     } catch {
       throw new ApiError("network", "Could not reach WeatherAPI. Check your connection.");
     }
@@ -283,7 +306,9 @@ export async function fetchWeatherData(query) {
   }
 }
 
-/** Geolocation */
+/* ==========================================
+   Geolocation
+   ========================================== */
 
 export function getUserCoordinates() {
   return new Promise((resolve, reject) => {
@@ -292,33 +317,47 @@ export function getUserCoordinates() {
       return;
     }
 
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(guard);
+      fn(value);
+    };
+
+    const guard = setTimeout(
+      () => finish(reject, new Error("Location request timed out. Allow location access, or search an airport code (e.g. LOS).")),
+      30000
+    );
+
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve({
+      (position) => finish(resolve, {
         lat: position.coords.latitude,
         lon: position.coords.longitude
       }),
       (error) => {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            reject(new Error("Location permission was denied."));
+            finish(reject, new Error("Location permission was denied."));
             break;
           case error.POSITION_UNAVAILABLE:
-            reject(new Error("Location information is unavailable."));
+            finish(reject, new Error("Location information is unavailable."));
             break;
           case error.TIMEOUT:
-            reject(new Error("Location request timed out."));
+            finish(reject, new Error("Location request timed out."));
             break;
           default:
-            reject(new Error(`Geolocation error: ${error.message}`));
+            finish(reject, new Error(`Geolocation error: ${error.message}`));
         }
-      }
+      },
+      { timeout: 10000, maximumAge: 10 * 60 * 1000 }
     );
   });
 }
 
 export async function reverseGeocode(lat, lon) {
   const endpoint = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
-  const response = await fetch(endpoint);
+  const response = await fetchWithTimeout(endpoint, 10000);
 
   if (!response.ok) throw new Error("Reverse geocoding service unavailable.");
 
@@ -332,6 +371,10 @@ export async function reverseGeocode(lat, lon) {
     continent: data.continent
   };
 }
+
+/* ==========================================
+   Nearest airport
+   ========================================== */
 
 const AIRPORTS_CSV = "https://davidmegginson.github.io/ourairports-data/airports.csv";
 const AIRPORT_INDEX_KEY = "airport-index:v1";
@@ -368,12 +411,27 @@ async function loadAirportIndex() {
   try {
     const saved = localStorage.getItem(AIRPORT_INDEX_KEY);
     if (saved) return JSON.parse(saved);
-  } catch { }
+  } catch {  }
 
-  const res = await fetch(AIRPORTS_CSV);
-  if (!res.ok) throw new Error("Airport database is unavailable right now.");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45000);
 
-  const [headerLine, ...lines] = (await res.text()).split("\n");
+  let text;
+  try {
+    const res = await fetch(AIRPORTS_CSV, { signal: controller.signal });
+    if (!res.ok) throw new Error("Airport database is unavailable right now.");
+    text = await res.text();
+  } catch (err) {
+    throw new Error(
+      err.name === "AbortError"
+        ? "Airport database took too long to load. Search an airport code instead (e.g. LOS)."
+        : err.message || "Airport database is unavailable right now."
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const [headerLine, ...lines] = text.split("\n");
   const col = Object.fromEntries(
     parseCsvLine(headerLine.trim()).map((name, i) => [name, i])
   );
@@ -387,7 +445,7 @@ async function loadAirportIndex() {
     index.push([iata, parseFloat(r[col.latitude_deg]), parseFloat(r[col.longitude_deg])]);
   }
 
-  try { localStorage.setItem(AIRPORT_INDEX_KEY, JSON.stringify(index)); } catch { /* ignore */ }
+  try { localStorage.setItem(AIRPORT_INDEX_KEY, JSON.stringify(index)); } catch {  }
   return index;
 }
 

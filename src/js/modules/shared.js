@@ -3,7 +3,11 @@ import { localTime } from '../services/FlightService.js';
 
 export function setText(id, value) {
   const node = document.getElementById(id);
-  if (node) node.textContent = value;
+  if (!node || node.textContent === String(value)) return;
+  node.textContent = value;
+  node.classList.remove('updated');
+  void node.offsetWidth;
+  node.classList.add('updated');
 }
 
 export function el(tag, className, text) {

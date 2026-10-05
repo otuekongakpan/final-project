@@ -27,6 +27,8 @@ function renderHero(flight) {
 
 export default {
   id: 'dashboard',
+  queryTypes: ['airport', 'text'],
+  placeholder: 'Search an airport (LOS), flight (BA74) or city',
 
   init(sharedApp) {
     app = sharedApp;

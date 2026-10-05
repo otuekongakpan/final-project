@@ -12,12 +12,13 @@ let cachedState = {
   departures: [],
   arrivals: [],
   flight: null,
-  weather: null,           
+  weather: null,          
   destinationWeather: null, 
   weatherContext: 'flight', 
+  weatherLabel: null,   
   weatherError: null,      
-  query: null,              
-  results: [],             
+  query: null,           
+  results: [],            
   lastUpdated: null
 };
 
@@ -43,12 +44,32 @@ async function loadFlightWeather(flight, airport) {
   ]);
 
   cachedState.weatherContext = 'flight';
+  cachedState.weatherLabel = null;
   cachedState.weather = origin.status === 'fulfilled' ? origin.value : null;
   cachedState.destinationWeather = dest.status === 'fulfilled' ? dest.value : null;
 
   const failure = [origin, dest].find((r) => r.status === 'rejected');
   cachedState.weatherError = failure ? failure.reason.message : null;
   if (failure) console.warn("WeatherAPI Notice:", failure.reason.message);
+}
+
+async function loadLocationWeather(query, label, { strict = false } = {}) {
+  let weather = null;
+  let error = null;
+
+  try {
+    weather = await getWeather(query);
+  } catch (e) {
+    if (strict) throw e;
+    error = e.message;
+    console.warn("WeatherAPI Notice:", e.message);
+  }
+
+  cachedState.weather = weather;
+  cachedState.destinationWeather = null;
+  cachedState.weatherContext = 'location';
+  cachedState.weatherLabel = label;
+  cachedState.weatherError = error;
 }
 
 /* ---------- Airport boards ---------- */
@@ -80,10 +101,11 @@ export async function loadAirportBoard(iata) {
   return cachedState;
 }
 
-export async function initGeoDashboard() {
-
+export async function initGeoDashboard(onProgress = () => {}) {
+  onProgress("Waiting for your location...");
   const coords = await getUserCoordinates();
 
+  onProgress("Finding the nearest airport...");
   cachedState.userLocation = await reverseGeocode(coords.lat, coords.lon).catch(() => null);
 
   const airport = await findNearestAirport(coords.lat, coords.lon);
@@ -91,7 +113,10 @@ export async function initGeoDashboard() {
     throw new Error("No airport found near your location. Search an airport code instead (e.g. LOS).");
   }
 
+  onProgress(`Loading flights at ${airport}...`);
   await loadAirportBoard(airport);
+
+  onProgress("Loading weather...");
   await loadFlightWeather(cachedState.flight, airport);
 
   cachedState.lastUpdated = new Date();
@@ -121,7 +146,7 @@ export async function searchDashboard(term) {
   switch (query.type) {
     case "airport":
       await loadAirportBoard(query.code);
-      await loadFlightWeather(cachedState.flight, query.code);
+      await loadLocationWeather(`iata:${query.code}`, `Airport ${query.code}`);
       break;
 
     case "flight":
@@ -146,11 +171,7 @@ export async function searchDashboard(term) {
       break;
 
     default:
-
-      cachedState.weather = await getWeather(query.text);
-      cachedState.destinationWeather = null;
-      cachedState.weatherContext = 'location';
-      cachedState.weatherError = null;
+      await loadLocationWeather(query.text, query.text, { strict: true });
   }
 
   cachedState.lastUpdated = new Date();
