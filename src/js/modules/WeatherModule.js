@@ -1,22 +1,21 @@
 
-import { metricTiles, worstLevel } from '../services/WeatherService.js';
+import { hazardDetail, metricTiles, worstLevel } from '../services/WeatherService.js';
+import { formatClock, formatDegrees, formatTemp } from '../services/format.js';
 import { el, setText } from './shared.js';
 
 const LEVEL_TEXT = { ok: 'Clear', caution: 'Caution', warning: 'Warning' };
-
-const deg = (v) => (v === null || v === undefined ? '—' : `${Math.round(v)}°`);
 
 /* ---------- Pieces of a panel ---------- */
 
 function renderNow(w) {
   const wrap = el('div', 'wx-now');
   wrap.append(
-    el('div', 'wx-temp', w.tempC),
-    el('div', 'wx-condition', `${w.condition}, feels like ${w.feelsLikeC}`)
+    el('div', 'wx-temp', formatTemp(w.temp)),
+    el('div', 'wx-condition', `${w.condition}, feels like ${formatTemp(w.feelsLike)}`)
   );
 
   const place = [w.location, w.region, w.country].filter(Boolean).join(', ');
-  wrap.append(el('div', 'wx-place', w.localClock ? `${place}. Local time ${w.localClock}` : place));
+  wrap.append(el('div', 'wx-place', w.localClock ? `${place}. Local time ${formatClock(w.localClock)}` : place));
   return wrap;
 }
 
@@ -41,7 +40,7 @@ function renderHazards(w) {
 
   const list = el('ul', 'wx-hazards');
   w.hazards.forEach((h) => {
-    list.append(el('li', `wx-hazard level-${h.level}`, `${h.label}: ${h.detail}`));
+    list.append(el('li', `wx-hazard level-${h.level}`, `${h.label}: ${hazardDetail(h)}`));
   });
   wrap.append(list);
   return wrap;
@@ -58,7 +57,7 @@ function renderForecast(w) {
     day.append(
       el('div', 'wx-day-name', name),
       el('div', 'wx-day-condition', d.condition),
-      el('div', 'wx-day-temps', `${deg(d.maxC)} / ${deg(d.minC)}`),
+      el('div', 'wx-day-temps', `${formatDegrees(d.maxC)} / ${formatDegrees(d.minC)}`),
       el('div', 'wx-day-rain', d.rainChance === null ? '—' : `${d.rainChance}% rain`)
     );
     row.append(day);
@@ -82,8 +81,8 @@ function renderHourly(w) {
     const cell = el('div', 'wx-hour');
     cell.title = h.condition;
     cell.append(
-      el('div', 'wx-hour-time', h.time),
-      el('div', 'wx-hour-temp', deg(h.tempC)),
+      el('div', 'wx-hour-time', formatClock(h.time)),
+      el('div', 'wx-hour-temp', formatDegrees(h.tempC)),
       el('div', 'wx-hour-rain', h.rainChance === null ? '—' : `${h.rainChance}%`)
     );
     strip.append(cell);
@@ -152,7 +151,7 @@ function renderSummary(panels, errorText) {
 
   box.append(el('p', 'hazard-headline', `${items.length} weather ${items.length === 1 ? 'hazard' : 'hazards'} found`));
   const list = el('ul', 'hazard-list');
-  items.forEach((i) => list.append(el('li', undefined, `${i.where}: ${i.label} (${i.detail})`)));
+  items.forEach((i) => list.append(el('li', undefined, `${i.where}: ${i.label} (${hazardDetail(i)})`)));
   box.append(list);
 }
 
@@ -165,7 +164,6 @@ export default {
   placeholder: 'Search a city or airport (LOS) for its weather',
 
   init() {
-
   },
 
   render(state) {

@@ -459,3 +459,38 @@ export async function findNearestAirport(lat, lon) {
 
   return nearest && nearest.km <= 200 ? nearest.code : null;
 }
+
+export function getApiStatus() {
+  return {
+    flights: Boolean(AVIATION_STACK_KEY) && AVIATION_STACK_KEY !== "YOUR_AVIATIONSTACK_API_KEY",
+    weather: Boolean(WEATHER_API_KEY) && WEATHER_API_KEY !== "YOUR_WEATHERAPI_KEY"
+  };
+}
+ 
+export function getCacheInfo() {
+  let entries = 0;
+  let chars = 0;
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(PREFIX + "q:"))
+      .forEach((key) => {
+        entries += 1;
+        chars += (localStorage.getItem(key) || "").length;
+      });
+  } catch {  }
+  return { entries, kb: Math.round(chars / 1024) };
+}
+
+export function clearApiCache() {
+  pruneCache();
+}
+ 
+
+export function getAirportIndexSize() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AIRPORT_INDEX_KEY));
+    return Array.isArray(saved) ? saved.length : 0;
+  } catch {
+    return 0;
+  }
+}

@@ -1,5 +1,6 @@
 
 import { localTime } from '../services/FlightService.js';
+import { isWatched } from '../services/WatchlistService.js';
 
 export function setText(id, value) {
   const node = document.getElementById(id);
@@ -18,6 +19,18 @@ export function el(tag, className, text) {
 }
 
 export const fmt = (iso) => (iso ? `${iso.slice(0, 10)} ${localTime(iso)}` : '—');
+
+export function updateWatchButtons(flight) {
+  const trackable = Boolean(flight) && flight.flightNumber !== 'N/A';
+  const watching = trackable && isWatched(flight);
+
+  document.querySelectorAll('.watch-btn').forEach((btn) => {
+    btn.disabled = !trackable;
+    btn.classList.toggle('watching', watching);
+    btn.setAttribute('aria-pressed', String(watching));
+    btn.textContent = watching ? '★ Tracking' : '☆ Track';
+  });
+}
 
 export function renderBoard(
   containerId,
@@ -45,6 +58,7 @@ export function renderBoard(
       scheduled = f.destination.scheduled;
       rightText = `from ${f.origin.code}`;
     } else {
+
       scheduled = f.origin.scheduled;
       rightText = `${f.origin.code} → ${f.destination.code}`;
       if (direction === 'results' && scheduled) airlineText = `${f.airline} • ${scheduled.slice(0, 10)}`;

@@ -1,6 +1,6 @@
 
 import { filterFlights } from '../services/FlightService.js';
-import { el, fmt, renderBoard, setText } from './shared.js';
+import { el, fmt, renderBoard, setText, updateWatchButtons } from './shared.js';
 
 let app;
 let lastState = null;
@@ -35,11 +35,15 @@ function renderDetail(flight) {
     return;
   }
 
+  const watch = el('button', 'watch-btn', '☆ Track');
+  watch.type = 'button';
+  watch.setAttribute('aria-pressed', 'false');
+
+  const actions = el('div', 'card-actions');
+  actions.append(el('div', 'badge status-live', flight.status), watch);
+
   const header = el('header', 'card-header');
-  header.append(
-    el('h3', undefined, `Flight ${flight.flightNumber} • ${flight.airline}`),
-    el('div', 'badge status-live', flight.status)
-  );
+  header.append(el('h3', undefined, `Flight ${flight.flightNumber} • ${flight.airline}`), actions);
 
   const route = el('div', 'flight-route');
   route.append(
@@ -52,6 +56,7 @@ function renderDetail(flight) {
   facts.append(factColumn('Departure', flight.origin), factColumn('Arrival', flight.destination));
 
   box.append(header, route, facts);
+  updateWatchButtons(flight);
 }
 
 function renderResults(state) {
@@ -74,6 +79,7 @@ function renderResults(state) {
 
 export default {
   id: 'tracking',
+
   queryTypes: ['flight', 'route', 'airline'],
   placeholder: 'Search a flight (BA74), route (LOS-JFK) or airline (BA)',
 

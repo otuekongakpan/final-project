@@ -1,4 +1,6 @@
 
+import { formatDistance, formatTemp, formatWind } from './format.js';
+
 const THUNDER = [1087, 1273, 1276, 1279, 1282];
 const FOG = [1135, 1147];
 const FREEZING = [1069, 1072, 1168, 1171, 1198, 1201, 1204, 1207, 1237, 1249, 1252, 1261, 1264];
@@ -7,12 +9,10 @@ const HEAVY_RAIN = [1192, 1195, 1243, 1246];
 
 const LEVEL_RANK = { ok: 0, caution: 1, warning: 2 };
 
-
 export const worstLevel = (items) =>
   items.reduce((worst, i) => (LEVEL_RANK[i.level] > LEVEL_RANK[worst] ? i.level : worst), "ok");
 
 /* ---------- Helpers ---------- */
-
 const num = (v) => (v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 
 function padLocal(str = "") {
@@ -26,26 +26,28 @@ function padLocal(str = "") {
 const withUnit = (v, unit) => (v === null ? "—" : `${Math.round(v * 10) / 10}${unit}`);
 
 /* ---------- Hazards ---------- */
-
 export function assessHazards(w) {
   const out = [];
-  const add = (level, label, detail) => out.push({ level, label, detail });
+  const add = (level, label, detail, extra = {}) => out.push({ level, label, detail, ...extra });
   const m = w.metrics;
   const code = w.conditionCode;
 
   if (m.visibilityKm !== null) {
-    if (m.visibilityKm < 1.5) add("warning", "Very low visibility", `${m.visibilityKm} km`);
-    else if (m.visibilityKm < 5) add("caution", "Reduced visibility", `${m.visibilityKm} km`);
+    const extra = { measure: "distance", value: m.visibilityKm };
+    if (m.visibilityKm < 1.5) add("warning", "Very low visibility", `${m.visibilityKm} km`, extra);
+    else if (m.visibilityKm < 5) add("caution", "Reduced visibility", `${m.visibilityKm} km`, extra);
   }
 
   if (m.gustKph !== null) {
-    if (m.gustKph >= 74) add("warning", "Severe gusts", `${Math.round(m.gustKph)} km/h`);
-    else if (m.gustKph >= 56) add("caution", "Strong gusts", `${Math.round(m.gustKph)} km/h`);
+    const extra = { measure: "speed", value: m.gustKph };
+    if (m.gustKph >= 74) add("warning", "Severe gusts", `${Math.round(m.gustKph)} km/h`, extra);
+    else if (m.gustKph >= 56) add("caution", "Strong gusts", `${Math.round(m.gustKph)} km/h`, extra);
   }
 
   if (m.windKph !== null) {
-    if (m.windKph >= 60) add("warning", "Very strong wind", `${Math.round(m.windKph)} km/h`);
-    else if (m.windKph >= 40) add("caution", "Strong wind", `${Math.round(m.windKph)} km/h`);
+    const extra = { measure: "speed", value: m.windKph };
+    if (m.windKph >= 60) add("warning", "Very strong wind", `${Math.round(m.windKph)} km/h`, extra);
+    else if (m.windKph >= 40) add("caution", "Strong wind", `${Math.round(m.windKph)} km/h`, extra);
   }
 
   if (THUNDER.includes(code) || /thunder/i.test(w.condition)) {
@@ -62,8 +64,8 @@ export function assessHazards(w) {
     add("caution", "Fog", w.condition);
   }
 
-  if (w.temp !== null && w.temp >= 38) add("caution", "Extreme heat", `${Math.round(w.temp)}°C`);
-  if (w.temp !== null && w.temp <= -20) add("caution", "Extreme cold", `${Math.round(w.temp)}°C`);
+  if (w.temp !== null && w.temp >= 38) add("caution", "Extreme heat", `${Math.round(w.temp)}°C`, { measure: "temp", value: w.temp });
+  if (w.temp !== null && w.temp <= -20) add("caution", "Extreme cold", `${Math.round(w.temp)}°C`, { measure: "temp", value: w.temp });
 
   w.alerts.forEach((a) => {
     add(/severe|extreme/i.test(a.severity) ? "warning" : "caution", "Official alert", a.headline);
@@ -72,8 +74,16 @@ export function assessHazards(w) {
   return out;
 }
 
-/* ---------- Normalizing ---------- */
+export function hazardDetail(hazard) {
+  switch (hazard.measure) {
+    case "distance": return formatDistance(hazard.value);
+    case "speed": return formatWind(hazard.value);
+    case "temp": return formatTemp(hazard.value);
+    default: return hazard.detail;
+  }
+}
 
+/* ---------- Normalizing ---------- */
 export function normalizeWeather(raw) {
   const loc = raw.location ?? {};
   const cur = raw.current ?? {};
@@ -125,6 +135,7 @@ export function normalizeWeather(raw) {
   }));
 
   const temp = num(cur.temp_c);
+  const feelsLike = num(cur.feelslike_c);
 
   const weather = {
     location: loc.name || "Unknown location",
@@ -136,9 +147,10 @@ export function normalizeWeather(raw) {
     isDay: cur.is_day === 1,
 
     temp,
+    feelsLike,
     tempC: temp === null ? "--°C" : `${Math.round(temp)}°C`,
     tempF: num(cur.temp_f) === null ? "--°F" : `${Math.round(cur.temp_f)}°F`,
-    feelsLikeC: num(cur.feelslike_c) === null ? "—" : `${Math.round(cur.feelslike_c)}°C`,
+    feelsLikeC: feelsLike === null ? "—" : `${Math.round(feelsLike)}°C`,
     humidity: metrics.humidity === null ? "—" : `${metrics.humidity}%`,
     windKph: metrics.windKph === null ? "—" : `${metrics.windKph} km/h`,
 
@@ -156,9 +168,9 @@ export function normalizeWeather(raw) {
 export function metricTiles(w) {
   const m = w.metrics;
   return [
-    ["Wind", m.windKph === null ? "—" : `${Math.round(m.windKph)} km/h ${m.windDir}`.trim()],
-    ["Gusts", withUnit(m.gustKph === null ? null : Math.round(m.gustKph), " km/h")],
-    ["Visibility", withUnit(m.visibilityKm, " km")],
+    ["Wind", m.windKph === null ? "—" : `${formatWind(m.windKph)} ${m.windDir}`.trim()],
+    ["Gusts", formatWind(m.gustKph)],
+    ["Visibility", formatDistance(m.visibilityKm)],
     ["Pressure", withUnit(m.pressureMb, " hPa")],
     ["Humidity", withUnit(m.humidity, "%")],
     ["Cloud cover", withUnit(m.cloud, "%")],

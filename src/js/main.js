@@ -1,15 +1,17 @@
-// src/js/main.js
-// Router and shared actions. Each page lives in its own module.
-import { initGeoDashboard, searchDashboard, selectFlight } from './services/DashboardService.js';
+
+import { initGeoDashboard, refreshData, refreshTracked, searchDashboard, selectFlight } from './services/DashboardService.js';
+import { getApiUsage } from './services/api.js';
+import { getSettings, onSettingsChange } from './services/SettingsService.js';
+import { applyFresh } from './services/WatchlistService.js';
 import DashboardModule from './modules/DashboardModule.js';
 import FlightTrackerModule from './modules/FlightTrackerModule.js';
 import WeatherModule from './modules/WeatherModule.js';
+import PackingModule from './modules/PackingModule.js';
+import RiskModule from './modules/RiskModule.js';
+import WatchlistModule from './modules/WatchlistModule.js';
+import SettingsModule from './modules/SettingsModule.js';
 
-// Order matters: when a search can't be shown on the current page, it opens the FIRST module
-// whose queryTypes include it. Each module declares queryTypes (the searches it can show)
-// and a placeholder for the top search bar.
-// Pages with no module yet (packing, risk, settings) still open as placeholders.
-const modules = [DashboardModule, FlightTrackerModule, WeatherModule];
+const modules = [DashboardModule, FlightTrackerModule, WeatherModule, PackingModule, RiskModule, WatchlistModule, SettingsModule];
 const DEFAULT_VIEW = 'dashboard';
 const DEFAULT_PLACEHOLDER = 'Search flight, route, airline or airport';
 
@@ -101,7 +103,6 @@ function rememberSearch(term) {
 
 const currentHash = () => location.hash.slice(1);
 
-/** Pages are discovered from the HTML: every .view-section with id="view-<name>" */
 function getViewIds() {
   return [...document.querySelectorAll('.view-section')].map((s) => s.id.replace('view-', ''));
 }
@@ -118,7 +119,7 @@ function setView(name) {
     if (!section) return;
     const show = id === view;
     section.hidden = !show;
-    section.style.display = show ? '' : 'none'; // overrides the inline display:none
+    section.style.display = show ? '' : 'none';
     section.classList.toggle('active', show);
   });
 
@@ -141,10 +142,21 @@ function goTo(view) {
 /* ---------- Rendering ---------- */
 
 function renderAll() {
+  if (state) {
+    applyFresh([
+      ...(state.active || []),
+      ...(state.departures || []),
+      ...(state.arrivals || []),
+      ...(state.airportFlights || []),
+      ...(state.results || []),
+      ...(state.flight ? [state.flight] : [])
+    ]);
+  }
+
   modules.forEach((m) => m.render(state));
 }
 
-/* ---------- Shared actions (given to every module) ---------- */
+/* ---------- Shared actions ---------- */
 
 async function select(flight) {
   await withLoading(async () => {
@@ -172,7 +184,6 @@ async function search(term) {
 
       renderAll();
 
-      // Stay on this page if it can show the result, otherwise open the page that can
       const type = state.query?.type;
       const here = modules.find((m) => m.id === activeView());
       const target = here?.queryTypes?.includes(type)
@@ -185,7 +196,54 @@ async function search(term) {
   });
 }
 
-const app = { select, search, goTo, rerender: renderAll, showError };
+async function refreshWatchlist(options) {
+  return withLoading(async () => {
+    try {
+      const result = await refreshTracked(options);
+      renderAll();
+      return result;
+    } catch (error) {
+      showError(error.message);
+      return null;
+    }
+  });
+}
+
+/* ---------- Settings: refresh rate and display options ---------- */
+
+let refreshTimer = null;
+
+async function refreshNow() {
+  if (!state) return;
+
+  await withLoading(async () => {
+    try {
+      state = await refreshData();
+      clearError();
+      renderAll();
+    } catch (error) {
+      showError(error.message);
+    }
+  });
+}
+
+const nearLimit = () => getApiUsage().requests >= getSettings().monthlyLimit * 0.9;
+
+async function autoRefresh() {
+  if (document.hidden || pending > 0 || !state || nearLimit()) return;
+  await refreshNow();
+}
+
+function applySettings() {
+  const { refreshMinutes, timeFormat } = getSettings();
+
+  document.body.classList.toggle('time-12h', timeFormat === '12h');
+
+  clearInterval(refreshTimer);
+  refreshTimer = refreshMinutes > 0 ? setInterval(autoRefresh, refreshMinutes * 60 * 1000) : null;
+}
+
+const app = { select, search, goTo, rerender: renderAll, showError, refreshTracked: refreshWatchlist, refreshNow };
 
 /* ---------- Startup ---------- */
 
@@ -211,6 +269,12 @@ async function startApp() {
 
 document.addEventListener('DOMContentLoaded', () => {
   modules.forEach((m) => m.init(app));
+
+  applySettings();
+  onSettingsChange(() => {
+    applySettings();
+    renderAll();
+  });
 
   renderSuggestions();
   ['flight-search-input', 'tracking-input'].forEach((id) =>

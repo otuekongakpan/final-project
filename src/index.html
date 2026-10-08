@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <meta name="theme-color" content="#1A2D4C" />
   <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/risk.css" />
   <script type="module" src="/js/main.js"></script>
 </head>
 <body>
@@ -299,27 +300,51 @@
 
         <!-- ========== VIEW 4: GEAR & PACKING ========== -->
         <div id="view-packing" class="view-section" style="display: none;">
+        
           <section class="dashboard-header">
             <h1>Gear & Packing Assistant</h1>
-            <p>Climate-adaptive recommendations for destination weather</p>
+            <p id="packing-subtitle">Select a flight or search a city to see what to pack.</p>
           </section>
+        
+          <section class="dashboard-card packing-summary" id="packing-summary"></section>
+        
+          <section class="packing-lists" id="packing-lists"></section>
+        
+          <section class="dashboard-card packing-tips" id="packing-tips" hidden></section>
+        
         </div>
+ 
 
         <!-- ========== VIEW 5: RISK ASSESSMENT ========== -->
         <div id="view-risk" class="view-section" style="display: none;">
-          <section class="dashboard-header">
+
+        <section class="dashboard-header">
             <h1>Travel Risk Assessment</h1>
-            <p>Security alerts, delays, and corridor safety indices</p>
-          </section>
+            <p id="risk-subtitle">Select a flight to see its risk analysis.</p>
+        </section>
+
+        <section class="risk-widgets">
+            <section class="dashboard-card risk-widget" id="risk-gauge"></section>
+            <section class="dashboard-card risk-widget" id="risk-factors"></section>
+            <section class="dashboard-card risk-widget" id="risk-outlook"></section>
+            <section class="dashboard-card risk-widget" id="risk-airport"></section>
+        </section>
+
+        <section class="dashboard-card risk-method" id="risk-method"></section>
+
         </div>
 
-        <!-- ========== VIEW 6: SETTINGS ========== -->
-        <div id="view-settings" class="view-section" style="display: none;">
-          <section class="dashboard-header">
-            <h1>System Settings</h1>
-            <p>Configure telemetry sources, refresh rate, and dashboard units</p>
-          </section>
-        </div>
+      <!-- ========== VIEW 6: SETTINGS ========== -->
+      <div id="view-settings" class="view-section" style="display: none;">
+
+        <section class="dashboard-header">
+          <h1>System Settings</h1>
+          <p>Configure telemetry sources, refresh rate, and dashboard units</p>
+        </section>
+
+        <section class="settings-grid" id="settings-grid"></section>
+
+      </div>
 
       </main>
     </div>
